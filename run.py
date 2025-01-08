@@ -122,7 +122,7 @@ async def status(update, context: CallbackContext):
 async def main():
     # Initialize updater and dispatcher
     
-    updater = Updater(TOKEN, context_types=ContextTypes.DEFAULT_TYPE)
+    updater = Updater(TOKEN, context_types= True)
     dp = updater.dispatcher
     
     # Register the /start, /stop, /restart, /fetch, and /status commands
