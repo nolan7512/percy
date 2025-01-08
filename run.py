@@ -46,18 +46,18 @@ def fetch_data():
                     message_ids.append(msg.message_id)
                 # Pin the first message out of the 5 sent messages
                 bot.pin_chat_message(chat_id=CHANNEL_ID, message_id=message_ids[0])
-                return True  # Character is dead
+                return True, rank  # Character is dead
             else:
                 rank = entry['rank']
-                return False  # Character is not dead
-    return None  # Character not found
+                return False, rank  # Character is not dead
+    return None, None  # Character not found
 
 # Function to start the bot and set up data fetching intervals
 def start(update, context):
     global last_message_time
     context.bot.send_message(chat_id=update.effective_chat.id, text='Bot đã bắt đầu theo dõi nhân vật.')
     while True:
-        character_dead = fetch_data()
+        character_dead, rank = fetch_data()
         current_time = datetime.now()
 
         if character_dead is None:
@@ -67,7 +67,6 @@ def start(update, context):
             break
         else:
             if last_message_time is None or (current_time - last_message_time).total_seconds() >= 1800:
-                rank = entry['rank']
                 message = (
                     f"YEAH NOT DEAD. Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.\n"
                     f"Nhân vật {CHARACTER_NAME} chưa chết. Rank hiện tại là {rank}."
