@@ -2,8 +2,8 @@ import os
 import requests
 import asyncio
 from datetime import datetime, timedelta
-from telegram import Bot, Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram import Bot
+from telegram.ext import Application, CommandHandler, ContextTypes
 
 # Replace with your bot token
 TOKEN = '7324758222:AAGCiGsotQ6Y-eVgoXrwPDNRSAP5GFNxsq4'
@@ -59,7 +59,7 @@ async def fetch_data():
         return None, None
 
 # Function to start the bot and set up data fetching intervals
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update, context: ContextTypes.DEFAULT_TYPE):
     global last_message_time, monitoring
     if monitoring:
         await update.message.reply_text("Monitoring is already running.")
@@ -86,9 +86,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await bot.send_message(chat_id=CHANNEL_ID, text=message)
                 last_message_time = current_time
 
-        await asyncio.sleep(21)  # Fetch data every minute
+        await asyncio.sleep(31)  # Fetch data every minute
 
-async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def stop(update, context: ContextTypes.DEFAULT_TYPE):
     global monitoring
     if not monitoring:
         await update.message.reply_text("Bot is not currently monitoring.")
@@ -96,11 +96,11 @@ async def stop(update: Update, context: ContextTypes.DEFAULT_TYPE):
     monitoring = False
     await update.message.reply_text("Bot has stopped monitoring.")
 
-async def restart(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def restart(update, context: ContextTypes.DEFAULT_TYPE):
     await stop(update, context)
     await start(update, context)
 
-async def fetch(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def fetch(update, context: ContextTypes.DEFAULT_TYPE):
     character_dead, rank = await fetch_data()
     if character_dead is None:
         await update.message.reply_text(f"Character {CHARACTER_NAME} not found or an error occurred.")
@@ -109,7 +109,7 @@ async def fetch(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.")
 
-async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def status(update, context: ContextTypes.DEFAULT_TYPE):
     global last_message_time
     if not monitoring:
         await update.message.reply_text("Bot is not currently monitoring.")
@@ -119,7 +119,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def main():
     # Initialize application
-    application = ApplicationBuilder().token(TOKEN).build()
+    application = Application.builder().token(TOKEN).build()
     
     # Register the /start, /stop, /restart, /fetch, and /status commands
     application.add_handler(CommandHandler("start", start))
@@ -129,11 +129,9 @@ async def main():
     application.add_handler(CommandHandler("status", status))
 
     # Set up webhook
-    application.run_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
+    await application.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
     
     # Keep the bot running
-    await application.initialize()
-    await application.start()
     await application.updater.start_polling()
     await application.idle()
 
