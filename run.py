@@ -88,7 +88,7 @@ def main() -> None:
                         print(f"An error occurred while sending not dead message: {e}")
                     last_message_time = current_time
 
-            time.sleep(31)  # Fetch data every minute
+            time.sleep(16)  # Fetch data every minute
         except Exception as e:
             print(f"An error occurred in the main loop: {e}")
             time.sleep(31)  # Wait a bit before trying again
