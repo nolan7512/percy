@@ -1,9 +1,10 @@
 import os
 import requests
-import asyncio
+import time
 from datetime import datetime, timedelta
+import asyncio
 from telegram import Bot
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
 # Replace with your bot token
 TOKEN = '7324758222:AAGCiGsotQ6Y-eVgoXrwPDNRSAP5GFNxsq4'
@@ -59,7 +60,7 @@ async def fetch_data():
         return None, None
 
 # Function to start the bot and set up data fetching intervals
-async def start(update, context: ContextTypes.DEFAULT_TYPE):
+async def start(update, context: CallbackContext):
     global last_message_time, monitoring
     if monitoring:
         await update.message.reply_text("Monitoring is already running.")
@@ -88,7 +89,7 @@ async def start(update, context: ContextTypes.DEFAULT_TYPE):
 
         await asyncio.sleep(31)  # Fetch data every minute
 
-async def stop(update, context: ContextTypes.DEFAULT_TYPE):
+async def stop(update, context: CallbackContext):
     global monitoring
     if not monitoring:
         await update.message.reply_text("Bot is not currently monitoring.")
@@ -96,11 +97,11 @@ async def stop(update, context: ContextTypes.DEFAULT_TYPE):
     monitoring = False
     await update.message.reply_text("Bot has stopped monitoring.")
 
-async def restart(update, context: ContextTypes.DEFAULT_TYPE):
+async def restart(update, context: CallbackContext):
     await stop(update, context)
     await start(update, context)
 
-async def fetch(update, context: ContextTypes.DEFAULT_TYPE):
+async def fetch(update, context: CallbackContext):
     character_dead, rank = await fetch_data()
     if character_dead is None:
         await update.message.reply_text(f"Character {CHARACTER_NAME} not found or an error occurred.")
@@ -109,7 +110,7 @@ async def fetch(update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text(f"Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.")
 
-async def status(update, context: ContextTypes.DEFAULT_TYPE):
+async def status(update, context: CallbackContext):
     global last_message_time
     if not monitoring:
         await update.message.reply_text("Bot is not currently monitoring.")
@@ -118,22 +119,22 @@ async def status(update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"Monitoring is active. Last message sent at: {last_message_time}. Next message will be sent at: {next_message_time}.")
 
 async def main():
-    # Initialize application
-    application = Application.builder().token(TOKEN).build()
+    # Initialize updater and dispatcher
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
     
     # Register the /start, /stop, /restart, /fetch, and /status commands
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("stop", stop))
-    application.add_handler(CommandHandler("restart", restart))
-    application.add_handler(CommandHandler("fetch", fetch))
-    application.add_handler(CommandHandler("status", status))
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("stop", stop))
+    dp.add_handler(CommandHandler("restart", restart))
+    dp.add_handler(CommandHandler("fetch", fetch))
+    dp.add_handler(CommandHandler("status", status))
 
     # Set up webhook
-    await application.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
+    updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
     
     # Keep the bot running
-    await application.updater.start_polling()
-    await application.idle()
+    updater.idle()
 
 if __name__ == '__main__':
     asyncio.run(main())
