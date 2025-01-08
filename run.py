@@ -86,7 +86,7 @@ def start(update, context: CallbackContext):
                 bot.send_message(chat_id=CHANNEL_ID, text=message)
                 last_message_time = current_time
 
-        time.sleep(20)  # Fetch data every minute
+        time.sleep(60)  # Fetch data every minute
 
 def stop(update, context: CallbackContext):
     global monitoring
