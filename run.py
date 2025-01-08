@@ -4,7 +4,7 @@ import time
 from datetime import datetime, timedelta
 import asyncio
 from telegram import Bot
-from telegram.ext import Updater, CommandHandler, CallbackContext, ContextTypes
+from telegram.ext import Application, CommandHandler, CallbackContext
 
 # Replace with your bot token
 TOKEN = '7324758222:AAGCiGsotQ6Y-eVgoXrwPDNRSAP5GFNxsq4'
@@ -120,23 +120,22 @@ async def status(update, context: CallbackContext):
         await update.message.reply_text(f"Monitoring is active. Last message sent at: {last_message_time}. Next message will be sent at: {next_message_time}.")
 
 async def main():
-    # Initialize updater and dispatcher
-    
-    updater = Updater(TOKEN, context_types= True)
-    dp = updater.dispatcher
+    # Initialize application and dispatcher
+    application = Application.builder().token(TOKEN).build()
+    dp = application.add_handler
     
     # Register the /start, /stop, /restart, /fetch, and /status commands
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("stop", stop))
-    dp.add_handler(CommandHandler("restart", restart))
-    dp.add_handler(CommandHandler("fetch", fetch))
-    dp.add_handler(CommandHandler("status", status))
+    dp(CommandHandler("start", start))
+    dp(CommandHandler("stop", stop))
+    dp(CommandHandler("restart", restart))
+    dp(CommandHandler("fetch", fetch))
+    dp(CommandHandler("status", status))
 
     # Set up webhook
-    updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
+    application.run_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
     
     # Keep the bot running
-    await updater.idle()
+    await application.wait_closed()
 
 if __name__ == '__main__':
     asyncio.run(main())
