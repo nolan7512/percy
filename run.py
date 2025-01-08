@@ -2,7 +2,8 @@ import os
 import requests
 import time
 from datetime import datetime, timedelta
-from telegram import Bot
+from telegram import Bot, Update
+from telegram.ext import Updater, CommandHandler, CallbackContext
 
 # Replace with your bot token
 TOKEN = '7324758222:AAGCiGsotQ6Y-eVgoXrwPDNRSAP5GFNxsq4'
@@ -18,7 +19,9 @@ CHARACTER_NAME = 'Percy_Verence'
 
 # Initialize the bot
 bot = Bot(token=TOKEN)
-
+# Read environment variables
+APP_URL = os.environ.get("APP_URL")
+PORT = int(os.environ.get('PORT', '8443'))
 # Variable to track the last time a message was sent
 last_message_time = None
 
@@ -88,10 +91,25 @@ def main() -> None:
                         print(f"An error occurred while sending not dead message: {e}")
                     last_message_time = current_time
 
-            time.sleep(16)  # Fetch data every minute
+            time.sleep(21)  # Fetch data every minute
         except Exception as e:
             print(f"An error occurred in the main loop: {e}")
-            time.sleep(31)  # Wait a bit before trying again
+            time.sleep(120)  # Wait a bit before trying again
+
+def start_webhook(updater: Updater, listen: str, port: int, url_path: str, webhook_url: str):
+    updater.start_webhook(listen=listen, port=port, url_path=url_path)
+    updater.bot.set_webhook(webhook_url)
+    updater.idle()
 
 if __name__ == '__main__':
+    # Initialize the Updater
+    updater = Updater(token=TOKEN, use_context=True)
+    
+    # Add a command handler for '/start' to test the bot
+    updater.dispatcher.add_handler(CommandHandler('start', lambda update, context: update.message.reply_text('Bot is running!')))
+
+    # Start the webhook
+    start_webhook(updater, listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
+    
+    # Run the main function
     main()
