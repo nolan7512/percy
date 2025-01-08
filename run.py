@@ -1,29 +1,30 @@
+import os
 import requests
 import time
 from telegram import Bot
-from telegram.ext import Updater
+from telegram.ext import Updater, CommandHandler
 
-# Thay thế bằng token bot của bạn
+# Replace with your bot token
 TOKEN = '7324758222:AAGCiGsotQ6Y-eVgoXrwPDNRSAP5GFNxsq4'
 
-# ID của nhóm nơi bot sẽ gửi thông báo (bắt đầu bằng @)
+# ID of the group where the bot will send notifications (starts with @)
 CHANNEL_ID = '@percy_verence_poe2'
 
-# URL của API
+# URL of the API
 API_URL = 'https://pathofexile2.com/internal-api/content/game-ladder/id/Hardcore'
 
-# Tên nhân vật cần kiểm tra
+# Name of the character to check
 CHARACTER_NAME = 'Percy_Verence'
 
-# Biến cờ để kiểm soát việc tiếp tục fetch dữ liệu và gửi thông điệp
-continue_fetching = True
+# Read environment variables
+APP_URL = os.environ.get("APP_URL")
+PORT = int(os.environ.get('PORT', '8443'))
 
-# Khởi tạo bot
+# Initialize the bot
 bot = Bot(token=TOKEN)
 
-# Hàm fetch dữ liệu từ API và kiểm tra trạng thái của nhân vật
+# Function to fetch data from the API and check the character's status
 def fetch_data():
-    global continue_fetching
     response = requests.get(API_URL)
     data = response.json()
 
@@ -39,10 +40,8 @@ def fetch_data():
                 for _ in range(5):
                     msg = bot.send_message(chat_id=CHANNEL_ID, text=message)
                     message_ids.append(msg.message_id)
-                # Ghim tin nhắn đầu tiên trong số 5 tin nhắn đã gửi
+                # Pin the first message out of the 5 sent messages
                 bot.pin_chat_message(chat_id=CHANNEL_ID, message_id=message_ids[0])
-                # Ngừng việc fetch dữ liệu
-                continue_fetching = False
             else:
                 rank = entry['rank']
                 message = (
@@ -52,22 +51,26 @@ def fetch_data():
                 bot.send_message(chat_id=CHANNEL_ID, text=message)
             break
 
-# Hàm khởi động bot và thiết lập thời gian fetch dữ liệu
-def start():
-    global continue_fetching
-    print('Bot đã bắt đầu theo dõi nhân vật.')
-    # Bot đã bắt đầu theo dõi nhân vật.
-    while continue_fetching:
+# Function to start the bot and set up data fetching intervals
+def start(update, context):
+    context.bot.send_message(chat_id=update.effective_chat.id, text='Bot đã bắt đầu theo dõi nhân vật.')
+    while True:
         fetch_data()
         time.sleep(60)
 
-# Khởi tạo bot và thiết lập command handler
-updater = Updater(token=TOKEN, use_context=True)
-dispatcher = updater.dispatcher
+def main() -> None:
+    # Initialize updater and dispatcher
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
+    
+    # Register the /start command
+    dp.add_handler(CommandHandler("start", start))
 
-# Bắt đầu fetch dữ liệu ngay lập tức
-start()
+    # Set up webhook
+    updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
+    
+    # Keep the bot running
+    updater.idle()
 
-# Khởi động polling để giữ cho bot hoạt động
-updater.start_polling()
-updater.idle()
+if __name__ == '__main__':
+    main()
