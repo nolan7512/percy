@@ -1,9 +1,10 @@
 import os
-import requests
+import aiohttp
 import time
 from datetime import datetime, timedelta
+import asyncio
 from telegram import Bot
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler, CallbackContext, ContextTypes
 
 # Replace with your bot token
 TOKEN = '7324758222:AAGCiGsotQ6Y-eVgoXrwPDNRSAP5GFNxsq4'
@@ -29,11 +30,12 @@ last_message_time = None
 monitoring = False
 
 # Function to fetch data from the API and check the character's status
-def fetch_data():
+async def fetch_data():
     try:
-        response = requests.get(API_URL)
-        response.raise_for_status()  # Raise an exception for HTTP errors
-        data = response.json()
+        async with aiohttp.ClientSession() as session:
+            async with session.get(API_URL) as response:
+                response.raise_for_status()  # Raise an exception for HTTP errors
+                data = await response.json()
 
         for entry in data['context']['ladder']['entries']:
             if entry['character']['name'] == CHARACTER_NAME:
@@ -45,10 +47,10 @@ def fetch_data():
                     )
                     message_ids = []
                     for _ in range(5):
-                        msg = bot.send_message(chat_id=CHANNEL_ID, text=message)
+                        msg = await bot.send_message(chat_id=CHANNEL_ID, text=message)
                         message_ids.append(msg.message_id)
                     # Pin the first message out of the 5 sent messages
-                    bot.pin_chat_message(chat_id=CHANNEL_ID, message_id=message_ids[0])
+                    await bot.pin_chat_message(chat_id=CHANNEL_ID, message_id=message_ids[0])
                     return True, rank  # Character is dead
                 else:
                     rank = entry['rank']
@@ -59,21 +61,21 @@ def fetch_data():
         return None, None
 
 # Function to start the bot and set up data fetching intervals
-def start(update, context: CallbackContext):
+async def start(update, context: CallbackContext):
     global last_message_time, monitoring
     if monitoring:
-        update.message.reply_text("Monitoring is already running.")
+        await update.message.reply_text("Monitoring is already running.")
         return
     monitoring = True
     last_message_time = None
-    update.message.reply_text('Bot đã bắt đầu theo dõi nhân vật.')
+    await update.message.reply_text('Bot đã bắt đầu theo dõi nhân vật.')
 
     while monitoring:
-        character_dead, rank = fetch_data()
+        character_dead, rank = await fetch_data()
         current_time = datetime.now()
 
         if character_dead is None:
-            context.bot.send_message(chat_id=CHANNEL_ID, text=f"Character {CHARACTER_NAME} not found.")
+            await context.bot.send_message(chat_id=CHANNEL_ID, text=f"Character {CHARACTER_NAME} not found.")
             break
         elif character_dead:
             break
@@ -83,43 +85,44 @@ def start(update, context: CallbackContext):
                     f"YEAH NOT DEAD. Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.\n"
                     f"Nhân vật {CHARACTER_NAME} chưa chết. Rank hiện tại là {rank}."
                 )
-                bot.send_message(chat_id=CHANNEL_ID, text=message)
+                await bot.send_message(chat_id=CHANNEL_ID, text=message)
                 last_message_time = current_time
 
-        time.sleep(31)  # Fetch data every minute
+        await asyncio.sleep(31)  # Fetch data every minute
 
-def stop(update, context: CallbackContext):
+async def stop(update, context: CallbackContext):
     global monitoring
     if not monitoring:
-        update.message.reply_text("Bot is not currently monitoring.")
+        await update.message.reply_text("Bot is not currently monitoring.")
         return
     monitoring = False
-    update.message.reply_text("Bot has stopped monitoring.")
+    await update.message.reply_text("Bot has stopped monitoring.")
 
-def restart(update, context: CallbackContext):
-    stop(update, context)
-    start(update, context)
+async def restart(update, context: CallbackContext):
+    await stop(update, context)
+    await start(update, context)
 
-def fetch(update, context: CallbackContext):
-    character_dead, rank = fetch_data()
+async def fetch(update, context: CallbackContext):
+    character_dead, rank = await fetch_data()
     if character_dead is None:
-        update.message.reply_text(f"Character {CHARACTER_NAME} not found or an error occurred.")
+        await update.message.reply_text(f"Character {CHARACTER_NAME} not found or an error occurred.")
     elif character_dead:
-        update.message.reply_text(f"DEAD WARNING: Character {CHARACTER_NAME} is DEAD. Current rank is {rank}.")
+        await update.message.reply_text(f"DEAD WARNING: Character {CHARACTER_NAME} is DEAD. Current rank is {rank}.")
     else:
-        update.message.reply_text(f"Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.")
+        await update.message.reply_text(f"Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.")
 
-def status(update, context: CallbackContext):
+async def status(update, context: CallbackContext):
     global last_message_time
     if not monitoring:
-        update.message.reply_text("Bot is not currently monitoring.")
+        await update.message.reply_text("Bot is not currently monitoring.")
     else:
         next_message_time = last_message_time + timedelta(seconds=1800) if last_message_time else "N/A"
-        update.message.reply_text(f"Monitoring is active. Last message sent at: {last_message_time}. Next message will be sent at: {next_message_time}.")
+        await update.message.reply_text(f"Monitoring is active. Last message sent at: {last_message_time}. Next message will be sent at: {next_message_time}.")
 
-def main() -> None:
+async def main():
     # Initialize updater and dispatcher
-    updater = Updater(TOKEN, use_context=True)
+    
+    updater = Updater(TOKEN, context_types=ContextTypes.DEFAULT_TYPE)
     dp = updater.dispatcher
     
     # Register the /start, /stop, /restart, /fetch, and /status commands
@@ -133,7 +136,7 @@ def main() -> None:
     updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
     
     # Keep the bot running
-    updater.idle()
+    await updater.idle()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
