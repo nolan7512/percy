@@ -63,7 +63,7 @@ def fetch_data():
         print(f"An error occurred while fetching data: {e}")
         return None, None
 
-def start() -> None:
+def monitor_character() -> None:
     global last_message_time
     last_message_time = None
     print('Bot đang theo dõi nhân vật.')
@@ -97,6 +97,11 @@ def start() -> None:
         except Exception as e:
             print(f"An error occurred in the main loop: {e}")
             time.sleep(120)  # Wait a bit before trying again
+
+def start(update: Update, context: CallbackContext) -> None:
+    # Run the monitoring in a separate thread to avoid blocking the main thread
+    import threading
+    threading.Thread(target=monitor_character).start()
 
 def main() -> None:
     # Initialize updater and dispatcher
