@@ -17,11 +17,13 @@ API_URL = 'https://pathofexile2.com/internal-api/content/game-ladder/id/Hardcore
 # Name of the character to check
 CHARACTER_NAME = 'Percy_Verence'
 
-# Initialize the bot
-bot = Bot(token=TOKEN)
 # Read environment variables
 APP_URL = os.environ.get("APP_URL")
 PORT = int(os.environ.get('PORT', '8443'))
+
+# Initialize the bot
+bot = Bot(token=TOKEN)
+
 # Variable to track the last time a message was sent
 last_message_time = None
 
@@ -61,7 +63,7 @@ def fetch_data():
         print(f"An error occurred while fetching data: {e}")
         return None, None
 
-def main() -> None:
+def start() -> None:
     global last_message_time
     last_message_time = None
     print('Bot đang theo dõi nhân vật.')
@@ -96,20 +98,19 @@ def main() -> None:
             print(f"An error occurred in the main loop: {e}")
             time.sleep(120)  # Wait a bit before trying again
 
-def start_webhook(updater: Updater, listen: str, port: int, url_path: str, webhook_url: str):
-    updater.start_webhook(listen=listen, port=port, url_path=url_path)
-    updater.bot.set_webhook(webhook_url)
+def main() -> None:
+    # Initialize updater and dispatcher
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
+
+    # Register the /start command
+    dp.add_handler(CommandHandler("start", start))
+
+    # Set up webhook
+    updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
+
+    # Keep the bot running
     updater.idle()
 
 if __name__ == '__main__':
-    # Initialize the Updater
-    updater = Updater(token=TOKEN, use_context=True)
-    
-    # Add a command handler for '/start' to test the bot
-    updater.dispatcher.add_handler(CommandHandler('start', lambda update, context: update.message.reply_text('Bot is running!')))
-
-    # Start the webhook
-    start_webhook(updater, listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
-    
-    # Run the main function
     main()
