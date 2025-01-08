@@ -29,28 +29,33 @@ last_message_time = None
 
 # Function to fetch data from the API and check the character's status
 def fetch_data():
-    response = requests.get(API_URL)
-    data = response.json()
+    try:
+        response = requests.get(API_URL)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        data = response.json()
 
-    for entry in data['context']['ladder']['entries']:
-        if entry['character']['name'] == CHARACTER_NAME:
-            if entry['dead']:
-                rank = entry['rank']
-                message = (
-                    f"DEAD WARNING  WARNING  WARNING  Character {CHARACTER_NAME} is DEAD. Current rank is {rank}.\n"
-                    f"DEAD WARNING  Nhân vật {CHARACTER_NAME} đã chết. Rank hiện tại là {rank}."
-                )
-                message_ids = []
-                for _ in range(5):
-                    msg = bot.send_message(chat_id=CHANNEL_ID, text=message)
-                    message_ids.append(msg.message_id)
-                # Pin the first message out of the 5 sent messages
-                bot.pin_chat_message(chat_id=CHANNEL_ID, message_id=message_ids[0])
-                return True, rank  # Character is dead
-            else:
-                rank = entry['rank']
-                return False, rank  # Character is not dead
-    return None, None  # Character not found
+        for entry in data['context']['ladder']['entries']:
+            if entry['character']['name'] == CHARACTER_NAME:
+                if entry['dead']:
+                    rank = entry['rank']
+                    message = (
+                        f"DEAD WARNING  Character {CHARACTER_NAME} is DEAD. Current rank is {rank}.\n"
+                        f"DEAD WARNING  Nhân vật {CHARACTER_NAME} đã chết. Rank hiện tại là {rank}."
+                    )
+                    message_ids = []
+                    for _ in range(5):
+                        msg = bot.send_message(chat_id=CHANNEL_ID, text=message)
+                        message_ids.append(msg.message_id)
+                    # Pin the first message out of the 5 sent messages
+                    bot.pin_chat_message(chat_id=CHANNEL_ID, message_id=message_ids[0])
+                    return True, rank  # Character is dead
+                else:
+                    rank = entry['rank']
+                    return False, rank  # Character is not dead
+        return None, None  # Character not found
+    except requests.exceptions.RequestException as e:
+        print(f"An error occurred: {e}")
+        return None, None
 
 # Function to start the bot and set up data fetching intervals
 def start(update, context):
@@ -61,20 +66,20 @@ def start(update, context):
         current_time = datetime.now()
 
         if character_dead is None:
-            context.bot.send_message(chat_id=CHANNEL_ID, text=f"Character {CHARACTER_NAME} not found.")
+            context.bot.send_message(chat_id=CHANNEL_ID, text=f"Character {CHARACTER_NAME} not found or an error occurred.")
             break
         elif character_dead:
             break
         else:
             if last_message_time is None or (current_time - last_message_time).total_seconds() >= 1800:
                 message = (
-                    f"YEAH NOT DEAD. Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.\n"
-                    f"Nhân vật {CHARACTER_NAME} chưa chết. Rank hiện tại là {rank}."
+                    f"NOT DEAD. Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.\n"
+                    f"NOT DEAD. Nhân vật {CHARACTER_NAME} chưa chết. Rank hiện tại là {rank}."
                 )
                 bot.send_message(chat_id=CHANNEL_ID, text=message)
                 last_message_time = current_time
 
-        time.sleep(6)  # Fetch data every minute
+        time.sleep(20)  # Fetch data every minute
 
 def main() -> None:
     # Initialize updater and dispatcher
