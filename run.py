@@ -4,6 +4,7 @@ import time
 from datetime import datetime, timedelta
 from telegram import Bot, Update
 from telegram.ext import Updater, CommandHandler, CallbackContext
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # Replace with your bot token
 TOKEN = '7324758222:AAGCiGsotQ6Y-eVgoXrwPDNRSAP5GFNxsq4'
@@ -68,40 +69,34 @@ def monitor_character() -> None:
     last_message_time = None
     print('Bot đang theo dõi nhân vật.')
 
-    while True:
-        try:
-            character_dead, rank = fetch_data()
-            current_time = datetime.now()
+    try:
+        character_dead, rank = fetch_data()
+        current_time = datetime.now()
 
-            if character_dead is None:
+        if character_dead is None:
+            try:
+                bot.send_message(chat_id=CHANNEL_ID, text=f"Error API")
+            except Exception as e:
+                print(f"An error occurred while sending not found message: {e}")
+            return
+        elif character_dead:
+            return
+        else:
+            if last_message_time is None or (current_time - last_message_time).total_seconds() >= 1800:
+                message = (
+                    f"YEAH NOT DEAD. Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.\n"
+                    f"Nhân vật {CHARACTER_NAME} chưa chết. Rank hiện tại là {rank}."
+                )
                 try:
-                    bot.send_message(chat_id=CHANNEL_ID, text=f"Character {CHARACTER_NAME} not found.")
+                    bot.send_message(chat_id=CHANNEL_ID, text=message)
                 except Exception as e:
-                    print(f"An error occurred while sending not found message: {e}")
-                break
-            elif character_dead:
-                break
-            else:
-                if last_message_time is None or (current_time - last_message_time).total_seconds() >= 1800:
-                    message = (
-                        f"YEAH NOT DEAD. Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.\n"
-                        f"Nhân vật {CHARACTER_NAME} chưa chết. Rank hiện tại là {rank}."
-                    )
-                    try:
-                        bot.send_message(chat_id=CHANNEL_ID, text=message)
-                    except Exception as e:
-                        print(f"An error occurred while sending not dead message: {e}")
-                    last_message_time = current_time
-
-            time.sleep(21)  # Fetch data every minute
-        except Exception as e:
-            print(f"An error occurred in the main loop: {e}")
-            time.sleep(120)  # Wait a bit before trying again
+                    print(f"An error occurred while sending not dead message: {e}")
+                last_message_time = current_time
+    except Exception as e:
+        print(f"An error occurred in the main loop: {e}")
 
 def start(update: Update, context: CallbackContext) -> None:
-    # Run the monitoring in a separate thread to avoid blocking the main thread
-    import threading
-    threading.Thread(target=monitor_character).start()
+    update.message.reply_text("Bot started monitoring the character.")
 
 def main() -> None:
     # Initialize updater and dispatcher
@@ -113,6 +108,11 @@ def main() -> None:
 
     # Set up webhook
     updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
+
+    # Initialize APScheduler
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(monitor_character, 'interval', minutes=1)
+    scheduler.start()
 
     # Keep the bot running
     updater.idle()
