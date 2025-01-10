@@ -92,6 +92,18 @@ def monitor_character() -> None:
                 except Exception as e:
                     print(f"An error occurred while sending not dead message: {e}")
                 last_message_time = current_time
+
+            # Check if rank is 1 and send a special notification
+            if rank == 1:
+                special_message = (
+                    f"CONGRATULATIONS! Character {CHARACTER_NAME} has reached rank 1!\n"
+                    f"CHÚC MỪNG! Nhân vật {CHARACTER_NAME} đã đạt hạng 1!"
+                )
+                try:
+                    bot.send_message(chat_id=CHANNEL_ID, text=special_message)
+                except Exception as e:
+                    print(f"An error occurred while sending rank 1 message: {e}")
+
     except Exception as e:
         print(f"An error occurred in the main loop: {e}")
 
