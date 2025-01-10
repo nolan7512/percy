@@ -117,6 +117,8 @@ def monitor_character() -> None:
 
 def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_text("Bot started monitoring the character.")
+    # Start monitoring immediately when the bot receives the /start command
+    monitor_character()
 
 def main() -> None:
     global last_message_time
@@ -134,7 +136,7 @@ def main() -> None:
 
     # Initialize APScheduler
     scheduler = BackgroundScheduler(timezone=pytz.utc)
-    scheduler.add_job(monitor_character, 'interval', minutes=1)
+    scheduler.add_job(monitor_character, 'interval', minutes=2)
     scheduler.start()
 
     # Keep the bot running
