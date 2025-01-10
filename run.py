@@ -90,17 +90,16 @@ def monitor_character() -> None:
         elif character_dead:
             return
         else:
-            if last_message_time is None or (current_time - last_message_time).total_seconds() >= 1800:
+            if last_message_time is None or (current_time - last_message_time).total_seconds() >= 720:
                 message = (
                     f"YEAH NOT DEAD. Character {CHARACTER_NAME} is NOT DEAD. Current rank is {rank}.\n"
                     f"Nhân vật {CHARACTER_NAME} chưa chết. Rank hiện tại là {rank}."
                 )
                 try:
                     bot.send_message(chat_id=CHANNEL_ID, text=message)
+                    last_message_time = current_time
                 except Exception as e:
-                    print(f"An error occurred while sending not dead message: {e}")
-                last_message_time = current_time
-
+                    print(f"An error occurred while sending not dead message: {e}")             
             # Check if rank is 1 and send a special notification
             if rank == 1:
                 special_message = (
