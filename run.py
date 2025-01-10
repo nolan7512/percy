@@ -29,6 +29,9 @@ bot = Bot(token=TOKEN)
 # Variable to track the last time a message was sent
 last_message_time = None
 
+# Variable to control logging
+log_start_time = None
+
 # Function to fetch data from the API and check the character's status
 def fetch_data():
     try:
@@ -66,8 +69,13 @@ def fetch_data():
         return None, None
 
 def monitor_character() -> None:
-    global last_message_time
-    print('Bot đang theo dõi nhân vật.')
+    global last_message_time, log_start_time
+
+    # Log the start of monitoring only once every hour
+    current_time = datetime.now()
+    if log_start_time is None or (current_time - log_start_time).total_seconds() >= 3600:
+        print('Bot đang theo dõi nhân vật.')
+        log_start_time = current_time
 
     try:
         character_dead, rank = fetch_data()
