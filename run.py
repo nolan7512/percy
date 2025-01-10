@@ -1,4 +1,5 @@
 import os
+import pytz
 import requests
 import time
 from datetime import datetime, timedelta
@@ -66,7 +67,6 @@ def fetch_data():
 
 def monitor_character() -> None:
     global last_message_time
-    last_message_time = None
     print('Bot đang theo dõi nhân vật.')
 
     try:
@@ -111,6 +111,9 @@ def start(update: Update, context: CallbackContext) -> None:
     update.message.reply_text("Bot started monitoring the character.")
 
 def main() -> None:
+    global last_message_time
+    last_message_time = datetime.now() - timedelta(seconds=1800)  # Initialize to allow immediate first message
+
     # Initialize updater and dispatcher
     updater = Updater(TOKEN, use_context=True)
     dp = updater.dispatcher
@@ -122,7 +125,7 @@ def main() -> None:
     updater.start_webhook(listen="0.0.0.0", port=PORT, url_path=TOKEN, webhook_url=APP_URL + TOKEN)
 
     # Initialize APScheduler
-    scheduler = BackgroundScheduler()
+    scheduler = BackgroundScheduler(timezone=pytz.utc)
     scheduler.add_job(monitor_character, 'interval', minutes=1)
     scheduler.start()
 
