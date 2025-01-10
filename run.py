@@ -87,7 +87,7 @@ def monitor_character() -> None:
             return
         else:
             formatted_experience = format_experience(experience)
-            if last_message_time is None or (current_time - last_message_time).total_seconds() >= 3600:  # 1 hour
+            if last_message_time is None or (current_time - last_message_time).total_seconds() >= 180:  # 1 hour
                 message = (
                     f"NOT DEAD. Character {CHARACTER_NAME} is NOT DEAD."
                     f"Rank : {rank}.\n"                   
